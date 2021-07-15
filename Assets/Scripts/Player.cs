@@ -11,6 +11,8 @@ public class Player : MonoBehaviour
     [SerializeField] float gravity = -9.8f;
 
     [Header("Jump Setups")]
+    [Tooltip("How many jumps the player can do")]
+    [SerializeField] int totalJumps = 2;
     [Tooltip("Force of the jump")]
     [SerializeField] float jumpForce = 2f;
     [Tooltip("Force of the double jump. Relative to the Jump Force.")]
@@ -19,12 +21,17 @@ public class Player : MonoBehaviour
     [SerializeField] float fallMultiplier = 5f;
     [Tooltip("How much the gravity affects the jump force")]
     [SerializeField] float jumpResistance = 4f;
+    [SerializeField] float coyoteDelay = .2f;
+
 
     [SerializeField] LayerMask groundLayer;
 
     // State
+    bool isGrounded;
     bool isAlive = true;
-    bool canDoubleJump = false;
+    int currentJumps;
+    bool canMultiJump = false;
+    bool coyoteJump;
     bool isClimbing;
 
     // Cached components references
@@ -41,10 +48,47 @@ public class Player : MonoBehaviour
 
     void Update()
     {
+
         Run();
         ClimbLadder();
         Jump();
         FlipSprite();
+    }
+
+    void FixedUpdate()
+    {
+        CheckGrounded();
+    }
+
+    private void CheckGrounded()
+    {
+        bool wasGrounded = isGrounded;
+        isGrounded = false;
+
+        float distance = 1f;
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, distance, groundLayer);
+        if (hit.collider != null)
+        {
+            isGrounded = true;
+            if (!wasGrounded)
+            {
+                currentJumps = totalJumps;
+                canMultiJump = false;
+            }
+        }
+        else
+        {
+            if (wasGrounded)
+                StartCoroutine(CoyoteJumpDelay());
+        }
+        animator.SetBool("Jump", !isGrounded);
+    }
+
+    IEnumerator CoyoteJumpDelay()
+    {
+        coyoteJump = true;
+        yield return new WaitForSeconds(coyoteDelay);
+        coyoteJump = false;
     }
 
     void Run()
@@ -66,27 +110,28 @@ public class Player : MonoBehaviour
     void Jump()
     {
         if (isClimbing) { return; }
-        if (IsGrounded())
-        {
-            canDoubleJump = true;
 
-            if (Input.GetButtonDown("Jump"))
+        if (Input.GetButtonDown("Jump"))
+        {
+            if (isGrounded || coyoteJump)
             {
+                canMultiJump = true;
+                currentJumps--;
+                
                 rb.velocity = Vector2.up * jumpForce;
                 animator.SetTrigger("Jump");
             }
-        }
-        else
-        {
-            if (Input.GetButtonDown("Jump") && canDoubleJump)
+            else
             {
-                rb.velocity = Vector2.up * jumpForce * doubleJumpForce;
-                canDoubleJump = false;
+                if (canMultiJump && currentJumps > 0)
+                {
+                    currentJumps--;
+                    rb.velocity = Vector2.up * jumpForce * doubleJumpForce;
+                }
             }
         }
-
         BetterJumpMod();
-        animator.SetBool("Grounded", IsGrounded());
+        animator.SetBool("Grounded", isGrounded);
     }
 
     void BetterJumpMod()
@@ -101,23 +146,10 @@ public class Player : MonoBehaviour
         }
     }
 
-    bool IsGrounded()
-    {
-        float distance = 1f;
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, distance, groundLayer);
-
-        return (hit.collider != null);
-    }
-
     void ClimbLadder()
     {
         float verticalValue = Input.GetAxis("Vertical") * climbSpeed;
         bool playerIsTouchingALadder = myCollider.IsTouchingLayers(LayerMask.GetMask("Ladders"));
-
-        if (IsGrounded())
-        {
-            isClimbing = false;
-        }
 
         if (playerIsTouchingALadder)
         {
