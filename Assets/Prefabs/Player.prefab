@@ -158,10 +158,12 @@ MonoBehaviour:
   runSpeed: 9
   climbSpeed: 5
   gravity: -15
+  totalJumps: 2
   jumpForce: 15
-  doubleJumpForce: 0.8
-  fallMultiplier: 5
-  jumpResistance: 3.5
+  multiJumpForce: 0.8
+  fallMultiplier: 4.5
+  jumpResistance: 4.2
+  coyoteDelay: 0.2
   groundLayer:
     serializedVersion: 2
     m_Bits: 64

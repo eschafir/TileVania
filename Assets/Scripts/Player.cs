@@ -6,6 +6,7 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     // Config
+    [Header("General Configs")]
     [SerializeField] float runSpeed = 5f;
     [SerializeField] float climbSpeed = 5f;
     [SerializeField] float gravity = -9.8f;
@@ -16,21 +17,21 @@ public class Player : MonoBehaviour
     [Tooltip("Force of the jump")]
     [SerializeField] float jumpForce = 2f;
     [Tooltip("Force of the double jump. Relative to the Jump Force.")]
-    [SerializeField] float doubleJumpForce = .8f;
+    [SerializeField] float multiJumpForce = .8f;
     [Tooltip("How much the gravity affects when player is falling")]
     [SerializeField] float fallMultiplier = 5f;
     [Tooltip("How much the gravity affects the jump force")]
     [SerializeField] float jumpResistance = 4f;
+    [Tooltip("Coyote time is the delay after the player is not grounded but can jumps as normally as if is grounded")]
     [SerializeField] float coyoteDelay = .2f;
-
 
     [SerializeField] LayerMask groundLayer;
 
     // State
-    bool isGrounded;
     bool isAlive = true;
-    int currentJumps;
+    bool isGrounded;
     bool canMultiJump = false;
+    int currentJumps;
     bool coyoteJump;
     bool isClimbing;
 
@@ -117,7 +118,7 @@ public class Player : MonoBehaviour
             {
                 canMultiJump = true;
                 currentJumps--;
-                
+
                 rb.velocity = Vector2.up * jumpForce;
                 animator.SetTrigger("Jump");
             }
@@ -126,7 +127,7 @@ public class Player : MonoBehaviour
                 if (canMultiJump && currentJumps > 0)
                 {
                     currentJumps--;
-                    rb.velocity = Vector2.up * jumpForce * doubleJumpForce;
+                    rb.velocity = Vector2.up * jumpForce * multiJumpForce;
                 }
             }
         }
@@ -154,6 +155,11 @@ public class Player : MonoBehaviour
         if (playerIsTouchingALadder)
         {
             bool playerIsMovingUpOrDown = Mathf.Abs(verticalValue) > Mathf.Epsilon;
+
+            if (Input.GetButtonDown("Jump"))
+            {
+                Jump();
+            }
 
             if (playerIsMovingUpOrDown)
             {
